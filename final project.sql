@@ -1,0 +1,181 @@
+DROP TABLE IF EXISTS Books;
+
+CREATE TABLE Books(
+		Book_ID SERIAL PRIMARY KEY,
+		Title VARCHAR(100),
+		Author VARCHAR(100),
+		Genre VARCHAR(100),
+		Published_Year INT,
+		Price NUMERIC(10,2),
+		Stock INT
+);
+
+--CREATE ANOTHER TABLE CUSTOMERS;
+CREATE TABLE Customers(
+		Customer_ID SERIAL PRIMARY KEY,
+		Name VARCHAR(100),
+		Email VARCHAR(50),
+		Phone VARCHAR(10),
+		City VARCHAR(50),
+		Country VARCHAR(150)
+);
+
+ALTER TABLE Customers
+ALTER COLUMN  Email TYPE VARCHAR(50);
+
+--CREATE ORDERS TABLE 
+CREATE TABLE Orders(
+		Order_ID SERIAL PRIMARY KEY,
+		Customer_ID INT REFERENCES Customers(Customer_ID),
+		Book_ID INT REFERENCES Books(Book_ID),
+		Order_Date DATE,
+		Quantity INT,
+		Total_Amount NUMERIC(10,2)		
+);
+
+
+SELECT * FROM Books;
+SELECT * FROM Customers;
+SELECT * FROM Orders;
+
+
+-- INSERT DATA INTO BOOKS TABLE
+COPY Books(Book_ID, Title, Author, Genre, Published_Year, Price, Stock)
+FROM '‪A:/SQL PROJECT DATA/Books.csv'
+WITH (FORMAT csv, HEADER);
+
+--1 RETRIEVE ALL THE BOOKS IN THE 'FICTION' GENRE:
+SELECT * FROM Books
+WHERE genre = 'Fiction';
+
+--2 FIND BOOKS PUBLISHED AFTER THE YEAR 1950:
+SELECT * FROM Books
+WHERE published_year>1950;
+
+--3 LIST ALL THE CUSTOMERS FROM CANADA:
+SELECT * FROM Customers
+WHERE country='Canada';
+SELECT * FROM Orders;
+--4 SHOW ORDERS PLACED IN NOVEMBER 2023:
+SELECT * FROM Orders
+WHERE order_date >= '2023-11-01' AND order_date<='2023-12-01';
+--OR
+SELECT * FROM Orders
+WHERE EXTRACT(MONTH FROM order_date)=11 AND EXTRACT(YEAR FROM order_date)=2023;
+
+
+--5RETRIEVE THE TOTAL STOCK OF BOOKS AVAILABLE:
+SELECT sum(Stock) AS TOTAL_STOCK_AVAIBLE 
+FROM Books;
+
+--6 FIND THE DETAILS OF THE MOST EXPENSIVE BOOK:
+SELECT Genre ,
+	  MAX(price) AS MOST_EXPENSIVE
+FROM Books
+GROUP BY Genre;
+
+--OR 
+
+SELECT * FROM Books ORDER BY price DESC LIMIT 1;
+
+--7 SHOW ALL THE CUSTOMERS WHO ORDERED MORE THAN 1 QUANTITY OF A BOOK:
+SELECT * FROM Orders
+WHERE quantity>1;
+
+
+--8 RETRIEVE ALL ORDERS WHERE THE TOTAL AMOUNT EXCEEDS $20:
+SELECT * FROM Orders
+WHERE total_amount>20;
+
+--9 LIST ALL GENRES AVAILABLE IN THE BOOKS TABLE
+SELECT DISTINCT(Genre) FROM Books;
+
+
+--10 FIND THE BOOK WITH THE LOWEST STOCK:
+SELECT * FROM Books ORDER BY Stock LIMIT 1;
+
+--11 CALCULATE THE TOTAL REVENUE GENERATED FROM ALL orders:
+SELECT sum(total_amount) AS TOTAL_REVENUE
+FROM Orders;
+
+
+
+---ADVANCED QUESTIONS
+--1 RETRIEVE THE TOTAL NUMBER OF BOOKS SOLD FOR EACH GENRE:
+SELECT b.genre,SUM(o.quantity) AS total_book_sold
+FROM Orders o
+JOIN 
+Books b
+ON
+	o.book_ID = b.book_ID
+GROUP BY b.genre;
+
+
+--2 FIND THE AVERAGE PRICE OF BOOKS IN THE "FANTASY" GENRE:
+SELECT AVG(price) AS AVERAGE_fANTASY_BOOKS 
+FROM Books
+WHERE genre='Fantasy';
+
+
+--3 LIST CUSTOMERS WHO HAVE PLACED ATLEAST 2 ORDERS:
+SELECT o.Customer_ID ,c.Name, COUNT(o.Order_ID) AS ORDER_COUNT
+FROM Orders o
+JOIN Customers c ON o.Customer_ID = c.Customer_ID
+GROUP BY o.Customer_ID, c.Name
+HAVING COUNT(Order_ID)>=2;
+
+
+--4 FIND THE MOST FREQUENTLY ORDERED BOOK:
+SELECT o.Book_ID, b.Title,COUNT(o.Order_ID) AS order_count
+FROM Orders o
+JOIN Books b ON o.Book_ID = b.Book_ID
+GROUP BY o.Book_ID,b.Title
+ORDER BY order_count DESC LIMIT 1;
+
+
+--5 SHOW ME THE TOP 3 MOST EXPENSIVE BOOKS OF 'FANTASY' GENRE:
+SELECT * FROM Books
+WHERE genre = 'Fantasy'
+ORDER BY price DESC LIMIT 3;
+
+
+--6 RETRIEVE THE TOTAL QUANTITY OF BOOKS SOLD BE EACH AUTHOR:
+SELECT b.Author,SUM(o.quantity) AS Total_books_sold_by_each_author
+FROM Orders o
+JOIN Books b ON o.book_id = b.book_id
+GROUP BY b.Author;
+
+--7 LIST THE CITY WHERE CUSTOMERS WHO SPENT OVER $30 ARE LOCATED:
+SELECT DISTINCT c.city , total_amount
+FROM Orders o
+JOIN Customers c ON c.customer_id = o.customer_id
+WHERE total_amount > 100;
+
+--8 FIND THE CUSTOMERS WHO SPENT ON MOST OF ORDERS:
+SELECT c.customer_id,c.name, SUM(o.total_amount) AS TOTAL_SPENT
+FROM Orders o
+JOIN Customers c ON o.customer_id = c.customer_id
+GROUP BY c.customer_id,c.name
+ORDER BY TOTAL_SPENT DESC LIMIT 1;
+
+--9 CALCULATE THE TOTAL STOCK REMAINING AFTER FULLFILLING ALL RECORDS:
+SELECT b.book_id,b.title,
+	b.stock,COALESCE(SUM(o.quantity),0) AS order_quantity,
+	b.stock - COALESCE(SUM(o.quantity),0) AS remaining_stock
+FROM Orders o
+JOIN Books b ON o.book_id = b.book_id
+GROUP BY b.book_id,b.title,b.stock
+ORDER BY b.book_id;
+
+
+
+
+
+
+
+
+
+
+
+
+
